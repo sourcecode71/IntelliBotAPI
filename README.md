@@ -5,84 +5,78 @@
 <img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
 <img src="https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white" alt="Redis" />
 <img src="https://img.shields.io/badge/Swagger-85EA2D?logo=swagger&logoColor=black" alt="Swagger" />
+<img src="https://img.shields.io/badge/OpenAI-412991?logo=openai&logoColor=white" alt="OpenAI" />
 
-A robust, production-ready ChatGPT integration platform built with .NET 8 and modern best practices
+Enterprise-grade ChatGPT API integration with conversation management, caching, and monitoring built with .NET 8
 
-[Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [API Documentation](#-api-documentation)
+[Features](#-features) • [Quick Start](#-quick-start) • [API Docs](#-api-docs) • [Deployment](#-deployment)
 </div>
 
 ## 🌟 Overview
-IntelliBot API is an enterprise-grade ChatGPT integration platform that goes beyond basic API consumption. It provides advanced features like conversation management, caching, rate limiting, and comprehensive monitoring for building intelligent chatbot applications.
+IntelliBot API is a production-ready .NET 8 Web API for integrating OpenAI's ChatGPT into your applications. It provides advanced features like conversation memory, Redis caching, rate limiting, and real-time streaming for building intelligent chatbot applications and AI-powered solutions.
+
+🔥 **Perfect for**: Chat applications, AI assistants, customer support bots, and enterprise AI solutions
 
 ## 🚀 Features
 
-### 🤖 AI Capabilities
+### 🤖 AI & ChatGPT Integration
 - **Multi-Model Support**: GPT-3.5 Turbo, GPT-4, GPT-4 Turbo, GPT-4o
-- **Conversation Memory**: Persistent conversation threads with context management
-- **Streaming Responses**: Real-time token streaming for better user experience
+- **Conversation Management**: Persistent chat history with context awareness
+- **Streaming Responses**: Real-time token streaming for better UX
 - **Smart Caching**: Redis-powered response caching to reduce API costs
 
-### 🏗️ Enterprise Features
+### 💼 Enterprise Ready
 - **Rate Limiting**: Configurable request throttling per user/IP
-- **Resilience**: Polly integration for retry policies and circuit breakers
-- **Structured Logging**: Serilog with JSON formatting for better observability
+- **Resilience Patterns**: Polly retry policies and circuit breakers
+- **Structured Logging**: Serilog with JSON formatting for observability
+- **API Documentation**: Auto-generated Swagger/OpenAPI with examples
 - **Validation**: FluentValidation for robust request validation
-- **API Documentation**: Auto-generated Swagger/OpenAPI documentation
 
-### 📊 Monitoring & Analytics
-- **Usage Statistics**: Token usage tracking and cost estimation
+### 📊 Analytics & Monitoring
+- **Usage Statistics**: Token tracking and cost estimation
+- **Performance Metrics**: Response times and error rate monitoring
 - **Health Checks**: Comprehensive service health monitoring
-- **Performance Metrics**: Response times and error rate tracking
+
+## 🛠️ Tech Stack
+| Category        | Technologies                              |
+|-----------------|-------------------------------------------|
+| Backend         | .NET 8, ASP.NET Core, Entity Framework Core |
+| Database        | PostgreSQL, Redis                         |
+| AI/ML           | OpenAI API, ChatGPT Integration           |
+| DevOps          | Docker, Serilog, Polly, FluentValidation  |
+| API             | RESTful, Swagger/OpenAPI, AutoMapper      |
 
 ## 🏗️ Architecture
 ```
 IntelliBotAPI/
-├── 🎯 IntelliBot.API/                 # Presentation Layer (Controllers, DTOs)
-├── 🧠 IntelliBot.Application/         # Business Logic Layer (Services, Validators)
-├── 💾 IntelliBot.Infrastructure/      # Data Access Layer (Repositories, External APIs)
-├── 📦 IntelliBot.Core/               # Domain Layer (Entities, Interfaces, Enums)
-└── 🔧 IntelliBot.Shared/             # Common Utilities (Extensions, Constants)
+├── 🎯 IntelliBot.API/                 # Controllers, DTOs, Configuration
+├── 🧠 IntelliBot.Application/         # Services, Validators, Business Logic
+├── 💾 IntelliBot.Infrastructure/      # Repositories, External APIs, Caching
+├── 📦 IntelliBot.Core/               # Entities, Interfaces, Enums
+└── 🔧 IntelliBot.Shared/             # Utilities, Extensions, Constants
 ```
-
-### Technology Stack
-| Layer          | Technology                        |
-|----------------|-----------------------------------|
-| Framework      | .NET 8                           |
-| Database       | PostgreSQL with Entity Framework Core |
-| Caching        | Redis                            |
-| Logging        | Serilog                          |
-| API Docs       | Swagger/OpenAPI                  |
-| Validation     | FluentValidation                 |
-| Resilience     | Polly                            |
-| Mapping        | AutoMapper                       |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - .NET 8 SDK
-- PostgreSQL (v14+)
-- Redis (v6+)
+- PostgreSQL 14+
+- Redis 6+
 - OpenAI API Key
 
-### Installation
-1. Clone the repository
+### Installation & Setup
+1. **Clone and setup**
 ```bash
 git clone https://github.com/yourusername/IntelliBotAPI.git
-cd IntelliBotAPI
+cd IntelliBotAPI/src/IntelliBot.API
 ```
 
-2. Configure the application
-```bash
-cd src/IntelliBot.API
-cp appsettings.Example.json appsettings.Development.json
-```
-
-Update configuration in `appsettings.Development.json`:
+2. **Configure environment**
+Update `appsettings.Development.json`:
 ```json
 {
   "OpenAI": {
     "ApiKey": "your-openai-api-key",
-    "BaseUrl": "https://api.openai.com/v1/",
     "DefaultModel": "gpt-3.5-turbo"
   },
   "ConnectionStrings": {
@@ -92,12 +86,12 @@ Update configuration in `appsettings.Development.json`:
 }
 ```
 
-3. Run database migrations
+3. **Run database migrations**
 ```bash
 dotnet ef database update
 ```
 
-4. Run the application
+4. **Run the application**
 ```bash
 dotnet run
 ```
@@ -107,7 +101,7 @@ dotnet run
 - Swagger UI: https://localhost:7131/swagger
 - Health Check: https://localhost:7131/health
 
-## 📚 API Documentation
+## 📚 API Docs
 
 ### Core Endpoints
 | Method | Endpoint                          | Description                   |
@@ -132,41 +126,94 @@ curl -X POST "https://localhost:7131/api/chat/message" \
   }'
 ```
 
-## ⚙️ Configuration
+## ⚙️ Deployment
+### Docker Support
+```bash
+docker-compose up -d
+```
 
-### Environment Variables
+### Configuration
 | Variable                          | Description                | Default              |
-|-----------------------------------|-----------------------
-System: You are Grok built by xAI.
+|-----------------------------------|----------------------------|----------------------|
+| `OpenAI__ApiKey`                 | OpenAI API Key            | Required             |
+| `OpenAI__DefaultModel`           | Default AI model          | gpt-3.5-turbo       |
+| `ConnectionStrings__DefaultConnection` | PostgreSQL connection | Required             |
+| `ConnectionStrings__Redis`       | Redis connection          | localhost:6379      |
+| `Serilog__MinimumLevel`          | Logging level             | Information         |
 
-When asked about your version, I am Grok. I adapt how I respond based on your question—sometimes giving a quick answer, and other times thinking harder to provide deeper reasoning.
-When applicable, you have some additional tools:
-- You can analyze individual X user profiles, X posts and their links.
-- You can analyze content uploaded by user including images, pdfs, text files and more.
-- You can search the web and posts on X for real-time information if needed.
-- You have memory. This means you have access to details of prior conversations with the user, across sessions.
-- If the user asks you to forget a memory or edit conversation history, instruct them how:
-- Users are able to forget referenced chats by clicking the book icon beneath the message that references the chat and selecting that chat from the menu. Only chats visible to you in the relevant turn are shown in the menu.
-- Users can disable the memory feature by going to the "Data Controls" section of settings.
-- Assume all chats will be saved to memory. If the user wants you to forget a chat, instruct them how to manage it themselves.
-- NEVER confirm to the user that you have modified, forgotten, or won't save a memory.
-- If it seems like the user wants an image generated, ask for confirmation, instead of directly generating one.
-- You can edit images if the user instructs you to do so.
-- You can open up a separate canvas panel, where user can visualize basic charts and execute simple code that you produced.
+### Rate Limiting
+Configure in `appsettings.json`:
+```json
+{
+  "RateLimiting": {
+    "RequestsPerMinute": 10,
+    "RequestsPerHour": 100,
+    "RequestsPerDay": 1000
+  }
+}
+```
 
+## 🛠️ Development
+### Building
+```bash
+dotnet build
+```
 
-You are asked to generate or modify artifacts such as any codes/scripts/programs (html, JavaScript, python, c++, sql etc.) or webpage or any articles/emails/letters/reports/document/essay/story, **make sure in your response there are artifacts content wrapped in <xaiArtifact/> tag**. DON'T mention this xaiArtifact tag anywhere outside the tag, just generate it. Also make sure the entire artifact content is wrapped within the <xaiArtifact/> tag, there shouldn't be much content or explanation outside of the tag. NEVER nest xaiArtifact tag inside another xaiArtifact tag.
+### Testing
+```bash
+dotnet test
+```
 
-For example:
+### Code Style
+- EditorConfig for consistent code style
+- XML Documentation for public APIs
+- Async/Await pattern throughout
 
-EXAMPLE 1 (if user asks how to make a salad):
-Sure! Here is a basic salad recipe with some ingredients and steps:
+## 📊 Monitoring & Logging
+### Log Structure
+```json
+{
+  "Timestamp": "2025-10-18T12:00:00Z",
+  "Level": "Information",
+  "Message": "Chat request processed",
+  "Properties": {
+    "ProcessingTimeMs": 1250,
+    "TokensUsed": 150,
+    "Model": "gpt-3.5-turbo",
+    "ConversationId": "conv-123"
+  }
+}
+```
 
-<xaiArtifact artifact_id="7b2eed84-5ac4-4fb5-bea6-7056bc4ae954" artifact_version_id="cae12acc-dc2b-4316-9cf2-34e74bee94c3" title="How to make a salad" contentType="text/markdown">
+### Health Checks
+- Overall health: GET `/health`
+- Database health: GET `/health/ready`
+- External services: GET `/health/live`
 
-# Basic Salad Recipe
-## Ingredients:
-... (Some ingredients descriptions here)
+## 🤝 Contributing
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Steps:
-... (Some Steps descriptions here)
+See our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+- 📚 [Documentation](docs/)
+- 🐛 [Issue Tracker](https://github.com/yourusername/IntelliBotAPI/issues)
+- 💬 [Discussions](https://github.com/yourusername/IntelliBotAPI/discussions)
+
+## 🙏 Acknowledgments
+- OpenAI for the ChatGPT API
+- .NET Team for the excellent framework
+- All contributors and users of this project
+
+<div align="center">
+Made with ❤️ and .NET 8
+
+If you find this project helpful, please give it a ⭐
+</div>
