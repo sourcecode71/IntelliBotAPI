@@ -1,0 +1,7 @@
+﻿namespace IntelliBot.Shared
+{
+    public class Class1
+    {
+
+    }
+}
