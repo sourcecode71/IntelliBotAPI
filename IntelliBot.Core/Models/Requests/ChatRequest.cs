@@ -12,11 +12,10 @@ namespace IntelliBot.Core.Models.Requests
     {
         public string Message { get; set; } = string.Empty;
         public string? ConversationId { get; set; }
-        public AiModel Model { get; set; } = AiModel.GPT35Turbo;
-        public double Temperature { get; set; } = 0.7;
-        public int MaxTokens { get; set; } = 1000;
-
-        public string UserId { get; set; } = string.Empty;
+        public AiModel? Model { get; set; }  // Changed to nullable
+        public double? Temperature { get; set; }  // Changed to nullable
+        public int? MaxTokens { get; set; }  // Changed to nullable
+        public string? UserId { get; set; }
         public List<MessageRequest> PreviousMessages { get; set; } = new List<MessageRequest>();
         public string? Title { get; set; }
     }

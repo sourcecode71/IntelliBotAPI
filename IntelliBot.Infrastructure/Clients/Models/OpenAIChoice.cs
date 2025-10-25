@@ -1,23 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace IntelliBot.Infrastructure.Clients.Models
 {
     public class OpenAIChoice
     {
-        internal object Message;
+        [JsonPropertyName("index")]
+        public int Index { get; set; }
 
-        [JsonPropertyName("prompt_tokens")]
-        public int PromptTokens { get; set; }
+        [JsonPropertyName("message")]
+        public OpenAIMessage Message { get; set; } = new OpenAIMessage();
 
-        [JsonPropertyName("completion_tokens")]
-        public int CompletionTokens { get; set; }
-
-        [JsonPropertyName("total_tokens")]
-        public int TotalTokens { get; set; }
+        [JsonPropertyName("finish_reason")]
+        public string FinishReason { get; set; } = string.Empty;
     }
 }

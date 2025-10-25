@@ -17,31 +17,30 @@ namespace IntelliBot.Infrastructure.Clients
         private readonly ILogger<OpenAIClient> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public OpenAIClient(
+            public OpenAIClient(
             HttpClient httpClient,
             IOptions<OpenAIConfig> config,
             ILogger<OpenAIClient> logger)
-        {
-            _httpClient = httpClient;
-            _config = config.Value;
-            _logger = logger;
+                {
+                    _httpClient = httpClient;
+                    _config = config.Value;
+                    _logger = logger;
 
-            _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-            };
+                    _jsonOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                    };
 
-            // Set up HttpClient
-            _httpClient.BaseAddress = new Uri(_config.BaseUrl);
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_config.ApiKey}");
+                    // Set up HttpClient with configuration from appsettings.json
+                    _httpClient.BaseAddress = new Uri(_config.BaseUrl);
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_config.ApiKey}");
 
-            if (!string.IsNullOrEmpty(_config.Organization))
-            {
-                _httpClient.DefaultRequestHeaders.Add("OpenAI-Organization", _config.Organization);
-            }
+                    // Add OpenRouter specific headers
+                    _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://github.com/sourcecode71/IntelliBotAPI");
+                    _httpClient.DefaultRequestHeaders.Add("X-Title", "IntelliBot API");
 
-            _httpClient.Timeout = _config.Timeout;
+                    _httpClient.Timeout = _config.Timeout;
         }
 
         public async Task<OpenAIResponse> GetChatCompletionAsync(OpenAIRequest request)

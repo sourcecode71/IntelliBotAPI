@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace IntelliBot.Infrastructure.Clients.Models
 {
@@ -23,6 +18,8 @@ namespace IntelliBot.Infrastructure.Clients.Models
 
         [JsonPropertyName("choices")]
         public List<OpenAIChoice> Choices { get; set; } = new List<OpenAIChoice>();
-        public object Usage { get; internal set; }
+
+        [JsonPropertyName("usage")]
+        public OpenAIUsage Usage { get; set; } = new OpenAIUsage();
     }
 }

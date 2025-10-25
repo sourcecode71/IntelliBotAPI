@@ -1,13 +1,13 @@
 ﻿using IntelliBot.Core.Enums;
 using IntelliBot.Core.Interfaces;
 using IntelliBot.Core.Models;
+using IntelliBot.Core.Models.Configuration;
 using IntelliBot.Core.Models.Requests;
 using IntelliBot.Core.Models.Responses;
 using IntelliBot.Infrastructure.Clients;
-using IntelliBot.Infrastructure.Clients.Models;
-using IntelliBot.Infrastructure.Repositories;
-using log4net.Core;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
 
 
 namespace IntelliBot.Application.Services
@@ -18,16 +18,18 @@ namespace IntelliBot.Application.Services
         private readonly IConversationRepository _conversationRepository;
         private readonly ILogger<ChatService> _logger;
         private readonly ICacheService _cacheService;
+        private readonly OpenAIConfig _openAIConfig;
 
-        // Update the constructor parameter type to match the interface IConversationRepository
         public ChatService(
             IOpenAIClient openAIClient,
-            IConversationRepository conversationRepository, // Change type to IConversationRepository
+            IOptions<OpenAIConfig> openAIConfig,
+            IConversationRepository conversationRepository,
             ICacheService cacheService,
             ILogger<ChatService> logger)
         {
             _openAIClient = openAIClient;
-            _conversationRepository = conversationRepository; // No cast needed as types now match
+            _openAIConfig = openAIConfig.Value;
+            _conversationRepository = conversationRepository;
             _cacheService = cacheService;
             _logger = logger;
         }
@@ -38,8 +40,19 @@ namespace IntelliBot.Application.Services
 
             try
             {
-                // Check cache for similar requests (optional optimization)
-                var cacheKey = $"chat_{request.Model}_{request.Message.GetHashCode()}";
+                // Apply backend defaults - user only needs to send the message
+                var backendRequest = new ChatRequest
+                {
+                    Message = request.Message,
+                    // Use values from request if provided, otherwise use backend defaults
+                    ConversationId = request.ConversationId,
+                    Model = request.Model ?? AiModel.GPT35Turbo,
+                    Temperature = request.Temperature ?? _openAIConfig.Temperature,
+                    MaxTokens = request.MaxTokens ?? _openAIConfig.MaxTokens
+                };
+
+                // Check cache for similar requests
+                var cacheKey = $"chat_{backendRequest.Model}_{backendRequest.Message.GetHashCode()}";
                 if (await _cacheService.ExistsAsync(cacheKey))
                 {
                     var cachedResponse = await _cacheService.GetAsync<ChatResponse>(cacheKey);
@@ -50,8 +63,8 @@ namespace IntelliBot.Application.Services
                     }
                 }
 
-                // Convert to OpenAI request
-                var openAIRequest = OpenAIMapper.ToOpenAIRequest(request);
+                // Convert to OpenAI request using backend-configured request
+                var openAIRequest = OpenAIMapper.ToOpenAIRequest(backendRequest);
 
                 // Call OpenAI API
                 var openAIResponse = await _openAIClient.GetChatCompletionAsync(openAIRequest);
@@ -59,11 +72,11 @@ namespace IntelliBot.Application.Services
                 var processingTime = DateTime.UtcNow - startTime;
 
                 // Convert to our response
-                var conversationId = request.ConversationId ?? Guid.NewGuid().ToString();
+                var conversationId = backendRequest.ConversationId ?? Guid.NewGuid().ToString();
                 var response = OpenAIMapper.ToChatResponse(openAIResponse, conversationId, processingTime);
 
                 // Save conversation to database
-                await SaveConversationAsync(request, response);
+                await SaveConversationAsync(backendRequest, response);
 
                 // Cache the response
                 await _cacheService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(30));
@@ -84,7 +97,17 @@ namespace IntelliBot.Application.Services
         {
             try
             {
-                var openAIRequest = OpenAIMapper.ToOpenAIRequest(request);
+                // Apply backend defaults for streaming too
+                var backendRequest = new ChatRequest
+                {
+                    Message = request.Message,
+                    ConversationId = request.ConversationId,
+                    Model = request.Model ?? AiModel.GPT35Turbo,
+                    Temperature = request.Temperature ?? _openAIConfig.Temperature,
+                    MaxTokens = request.MaxTokens ?? _openAIConfig.MaxTokens
+                };
+
+                var openAIRequest = OpenAIMapper.ToOpenAIRequest(backendRequest);
                 openAIRequest.Stream = true;
 
                 await _openAIClient.StreamChatCompletionAsync(openAIRequest, onTokenReceived, cancellationToken);
@@ -119,7 +142,7 @@ namespace IntelliBot.Application.Services
             {
                 Id = Guid.NewGuid().ToString(),
                 Title = GenerateConversationTitle(request.Message),
-                UserId = request.UserId,
+                UserId = request.UserId ?? "default-user", // Use default if not provided
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -179,7 +202,7 @@ namespace IntelliBot.Application.Services
             {
                 new AiModelInfo
                 {
-                    Id = "gpt-3.5-turbo",
+                    Id = "openai/gpt-3.5-turbo",
                     Name = "GPT-3.5 Turbo",
                     Description = "Fast and cost-effective for most tasks",
                     MaxTokens = 4096,
@@ -189,7 +212,7 @@ namespace IntelliBot.Application.Services
                 },
                 new AiModelInfo
                 {
-                    Id = "gpt-4",
+                    Id = "openai/gpt-4",
                     Name = "GPT-4",
                     Description = "More capable than GPT-3.5, better reasoning",
                     MaxTokens = 8192,
@@ -199,7 +222,7 @@ namespace IntelliBot.Application.Services
                 },
                 new AiModelInfo
                 {
-                    Id = "gpt-4-turbo",
+                    Id = "openai/gpt-4-turbo",
                     Name = "GPT-4 Turbo",
                     Description = "Latest GPT-4 model with improved capabilities",
                     MaxTokens = 128000,
@@ -209,7 +232,7 @@ namespace IntelliBot.Application.Services
                 },
                 new AiModelInfo
                 {
-                    Id = "gpt-4o",
+                    Id = "openai/gpt-4o",
                     Name = "GPT-4o",
                     Description = "Our most advanced model, faster and more capable",
                     MaxTokens = 128000,
@@ -227,9 +250,8 @@ namespace IntelliBot.Application.Services
                 // Send a simple test request to verify configuration
                 var testRequest = new ChatRequest
                 {
-                    Message = "Hello, please respond with 'OK' if you can read this.",
-                    Model = AiModel.GPT35Turbo,
-                    MaxTokens = 10
+                    Message = "Hello, please respond with 'OK' if you can read this."
+                    // No need to specify Model, Temperature, MaxTokens - backend will apply defaults
                 };
 
                 var response = await SendMessageAsync(testRequest);
@@ -261,7 +283,7 @@ namespace IntelliBot.Application.Services
                     Role = MessageRole.User,
                     Content = request.Message,
                     TokensUsed = 0, // You can calculate this from request
-                    ModelUsed = OpenAIMapper.ToOpenAIModelString(request.Model),
+                    ModelUsed = OpenAIMapper.ToOpenAIModelString(request.Model ?? 0),
                     Timestamp = DateTime.UtcNow
                 });
 
