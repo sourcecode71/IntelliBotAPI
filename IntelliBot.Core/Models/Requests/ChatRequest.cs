@@ -11,8 +11,13 @@ namespace IntelliBot.Core.Models.Requests
     public class ChatRequest
     {
         public string Message { get; set; } = string.Empty;
+    }
+
+    public class ChatSession
+    {
+        public string Message { get; set; } = string.Empty;
         public string? ConversationId { get; set; }
-        public AiModel? Model { get; set; }  // Changed to nullable
+        public String? Model { get; set; }  // Changed to nullable
         public double? Temperature { get; set; }  // Changed to nullable
         public int? MaxTokens { get; set; }  // Changed to nullable
         public string? UserId { get; set; }

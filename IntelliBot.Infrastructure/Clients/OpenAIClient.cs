@@ -17,10 +17,10 @@ namespace IntelliBot.Infrastructure.Clients
         private readonly ILogger<OpenAIClient> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
 
-            public OpenAIClient(
-            HttpClient httpClient,
-            IOptions<OpenAIConfig> config,
-            ILogger<OpenAIClient> logger)
+        public OpenAIClient(
+        HttpClient httpClient,
+        IOptions<OpenAIConfig> config,
+        ILogger<OpenAIClient> logger)
                 {
                     _httpClient = httpClient;
                     _config = config.Value;
@@ -32,54 +32,61 @@ namespace IntelliBot.Infrastructure.Clients
                         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
                     };
 
-                    // Set up HttpClient with configuration from appsettings.json
+                    // Set up HttpClient
                     _httpClient.BaseAddress = new Uri(_config.BaseUrl);
-                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_config.ApiKey}");
 
-                    // Add OpenRouter specific headers
+                    // Clear any existing headers first
+                    _httpClient.DefaultRequestHeaders.Clear();
+
+                    // Add required headers (EXACTLY like curl)
+                    _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_config.ApiKey}");
                     _httpClient.DefaultRequestHeaders.Add("HTTP-Referer", "https://github.com/sourcecode71/IntelliBotAPI");
                     _httpClient.DefaultRequestHeaders.Add("X-Title", "IntelliBot API");
+                    // Add Content-Type header explicitly
+                    _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 
                     _httpClient.Timeout = _config.Timeout;
         }
 
-        public async Task<OpenAIResponse> GetChatCompletionAsync(OpenAIRequest request)
-        {
-            try
-            {
-                _logger.LogDebug("Sending OpenAI chat completion request for model {Model}", request.Model);
+  
 
-                var jsonContent = JsonSerializer.Serialize(request, _jsonOptions);
-                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+          public async Task<OpenAIResponse> GetChatCompletionAsync(OpenAIRequest request)
+          {
+              try
+              {
+                  _logger.LogDebug("Sending OpenAI chat completion request for model {Model}", request.Model);
 
-                var response = await _httpClient.PostAsync("chat/completions", content);
-                response.EnsureSuccessStatusCode();
+                  var jsonContent = JsonSerializer.Serialize(request, _jsonOptions);
+                  var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                var openAIResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseContent, _jsonOptions);
+                  var response = await _httpClient.PostAsync("chat/completions", content);
+                  response.EnsureSuccessStatusCode();
 
-                if (openAIResponse == null)
-                {
-                    throw new InvalidOperationException("Failed to deserialize OpenAI response");
-                }
+                  var responseContent = await response.Content.ReadAsStringAsync();
+                  var openAIResponse = JsonSerializer.Deserialize<OpenAIResponse>(responseContent, _jsonOptions);
 
-                _logger.LogDebug(
-                    "OpenAI response received: {Tokens} tokens used, {Choices} choices",
-                    openAIResponse.Usage.TotalTokens, openAIResponse.Choices.Count);
+                  if (openAIResponse == null)
+                  {
+                      throw new InvalidOperationException("Failed to deserialize OpenAI response");
+                  }
 
-                return openAIResponse;
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP error while calling OpenAI API");
-                throw new OpenAIApiException("Error calling OpenAI API", ex);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while calling OpenAI API");
-                throw new OpenAIApiException("Unexpected error calling OpenAI API", ex);
-            }
-        }
+                  _logger.LogDebug(
+                      "OpenAI response received: {Tokens} tokens used, {Choices} choices",
+                      openAIResponse.Usage.TotalTokens, openAIResponse.Choices.Count);
+
+                  return openAIResponse;
+              }
+              catch (HttpRequestException ex)
+              {
+                  _logger.LogError(ex, "HTTP error while calling OpenAI API");
+                  throw new OpenAIApiException("Error calling OpenAI API", ex);
+              }
+              catch (Exception ex)
+              {
+                  _logger.LogError(ex, "Unexpected error while calling OpenAI API");
+                  throw new OpenAIApiException("Unexpected error calling OpenAI API", ex);
+              }
+          } 
 
         public async Task StreamChatCompletionAsync(OpenAIRequest request, Func<string, Task> onTokenReceived, CancellationToken cancellationToken = default)
         {

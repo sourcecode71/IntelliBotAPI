@@ -10,7 +10,7 @@ namespace IntelliBot.Core.Models.Entities
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string Title { get; set; } = string.Empty;
-        public string? UserId { get; set; }
+        public string UserId { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
         public List<ConversationMessage> Messages { get; set; } = new();

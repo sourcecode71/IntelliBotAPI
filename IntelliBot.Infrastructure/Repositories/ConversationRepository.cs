@@ -195,5 +195,27 @@ namespace IntelliBot.Infrastructure.Repositories
                 throw;
             }
         }
+
+        public async Task<Conversation?> GetMostRecentByUserIdAsync(string userId)
+        {
+            try
+            {
+                // Only return for userId "126" as requested
+                if (userId != "126")
+                    return await Task.FromResult<Conversation?>(null);
+
+                var conversation = _conversations
+                    .Where(c => c.UserId == "126")
+                    .OrderByDescending(c => c.UpdatedAt)
+                    .FirstOrDefault();
+
+                return await Task.FromResult(conversation);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving most recent conversation for user {UserId}", userId);
+                throw;
+            }
+        }
     }
 }

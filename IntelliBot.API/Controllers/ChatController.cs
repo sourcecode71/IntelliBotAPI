@@ -160,41 +160,41 @@ namespace IntelliBot.API.Controllers
             }
         }
 
-        /// <summary>
-        /// Create a new conversation
-        /// </summary>
-        /// <param name="request">Conversation creation request</param>
-        /// <returns>Created conversation</returns>
-        [HttpPost("conversations")]
-        [ProducesResponseType(typeof(ConversationResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<ConversationResponse>> CreateConversation(
-            [FromBody] ChatRequest request)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(request.Title))
-                {
-                    return BadRequest(new ProblemDetails
-                    {
-                        Title = "Invalid request",
-                        Detail = "Title is required",
-                        Status = StatusCodes.Status400BadRequest
-                    });
-                }
+        ///// <summary>
+        ///// Create a new conversation
+        ///// </summary>
+        ///// <param name="request">Conversation creation request</param>
+        ///// <returns>Created conversation</returns>
+        //[HttpPost("conversations")]
+        //[ProducesResponseType(typeof(ConversationResponse), StatusCodes.Status200OK)]
+        //[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        //public async Task<ActionResult<ConversationResponse>> CreateConversation(
+        //    [FromBody] ChatRequest request)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrWhiteSpace(request.Title))
+        //        {
+        //            return BadRequest(new ProblemDetails
+        //            {
+        //                Title = "Invalid request",
+        //                Detail = "Title is required",
+        //                Status = StatusCodes.Status400BadRequest
+        //            });
+        //        }
 
-                var conversation = await _chatService.CreateConversationAsync(request);
-                return Ok(conversation);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating conversation with title {Title}", request.Title);
-                return Problem(
-                    title: "Error creating conversation",
-                    detail: ex.Message,
-                    statusCode: StatusCodes.Status500InternalServerError);
-            }
-        }
+        //        var conversation = await _chatService.CreateConversationAsync(request);
+        //        return Ok(conversation);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error creating conversation with title {Title}", request.Title);
+        //        return Problem(
+        //            title: "Error creating conversation",
+        //            detail: ex.Message,
+        //            statusCode: StatusCodes.Status500InternalServerError);
+        //    }
+        //}
 
         /// <summary>
         /// Delete a conversation

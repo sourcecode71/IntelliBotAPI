@@ -15,6 +15,7 @@ namespace IntelliBot.Infrastructure.Clients
         Task UpdateAsync(Conversation conversation);
         Task<bool> DeleteAsync(string id);
         Task<UsageStatistics> GetUsageStatisticsAsync(DateTime fromDate, DateTime toDate, string? userId = null);
+        Task<Conversation?> GetMostRecentByUserIdAsync(string userId);
     }
 
     public class UsageStatistics

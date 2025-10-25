@@ -8,8 +8,6 @@ using IntelliBot.Infrastructure.Clients;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-
-
 namespace IntelliBot.Application.Services
 {
     public class ChatService : IChatService
@@ -40,19 +38,35 @@ namespace IntelliBot.Application.Services
 
             try
             {
-                // Apply backend defaults - user only needs to send the message
-                var backendRequest = new ChatRequest
+                // Server-side configuration
+                var serverConfig = new ChatSession
                 {
-                    Message = request.Message,
-                    // Use values from request if provided, otherwise use backend defaults
-                    ConversationId = request.ConversationId,
-                    Model = request.Model ?? AiModel.GPT35Turbo,
-                    Temperature = request.Temperature ?? _openAIConfig.Temperature,
-                    MaxTokens = request.MaxTokens ?? _openAIConfig.MaxTokens
+                    Model = _openAIConfig.DefaultModel,
+                    Temperature = _openAIConfig.Temperature,
+                    MaxTokens = _openAIConfig.MaxTokens,
+                    UserId = GetUserIdFromContext()
                 };
 
-                // Check cache for similar requests
-                var cacheKey = $"chat_{backendRequest.Model}_{backendRequest.Message.GetHashCode()}";
+                // Server manages conversation
+                string conversationId = await GetOrCreateConversationId(serverConfig.UserId);
+
+                // Get conversation history from database
+                var previousMessages = await GetConversationHistory(conversationId);
+
+                // Build complete session with server-side values
+                var chatSession = new ChatSession
+                {
+                    Message = request.Message, // Only user input
+                    Model = serverConfig.Model,
+                    Temperature = serverConfig.Temperature,
+                    MaxTokens = serverConfig.MaxTokens,
+                    UserId = serverConfig.UserId,
+                    ConversationId = conversationId,
+                    PreviousMessages = previousMessages
+                };
+
+                // Check cache
+                var cacheKey = $"chat_{chatSession.Model}_{chatSession.Message.GetHashCode()}";
                 if (await _cacheService.ExistsAsync(cacheKey))
                 {
                     var cachedResponse = await _cacheService.GetAsync<ChatResponse>(cacheKey);
@@ -63,8 +77,8 @@ namespace IntelliBot.Application.Services
                     }
                 }
 
-                // Convert to OpenAI request using backend-configured request
-                var openAIRequest = OpenAIMapper.ToOpenAIRequest(backendRequest);
+                // Convert to OpenAI request using the chat session
+                var openAIRequest = OpenAIMapper.ToOpenAIRequest(chatSession);
 
                 // Call OpenAI API
                 var openAIResponse = await _openAIClient.GetChatCompletionAsync(openAIRequest);
@@ -72,11 +86,10 @@ namespace IntelliBot.Application.Services
                 var processingTime = DateTime.UtcNow - startTime;
 
                 // Convert to our response
-                var conversationId = backendRequest.ConversationId ?? Guid.NewGuid().ToString();
                 var response = OpenAIMapper.ToChatResponse(openAIResponse, conversationId, processingTime);
 
                 // Save conversation to database
-                await SaveConversationAsync(backendRequest, response);
+                await SaveConversationAsync(chatSession, response);
 
                 // Cache the response
                 await _cacheService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(30));
@@ -93,30 +106,50 @@ namespace IntelliBot.Application.Services
             }
         }
 
-        public async Task StreamMessageAsync(ChatRequest request, Func<string, Task> onTokenReceived, CancellationToken cancellationToken = default)
+        private async Task<string> GetOrCreateConversationId(string userId)
         {
-            try
-            {
-                // Apply backend defaults for streaming too
-                var backendRequest = new ChatRequest
-                {
-                    Message = request.Message,
-                    ConversationId = request.ConversationId,
-                    Model = request.Model ?? AiModel.GPT35Turbo,
-                    Temperature = request.Temperature ?? _openAIConfig.Temperature,
-                    MaxTokens = request.MaxTokens ?? _openAIConfig.MaxTokens
-                };
+            // Get user's most recent active conversation
+            var recentConversation = await _conversationRepository.GetMostRecentByUserIdAsync(userId);
 
-                var openAIRequest = OpenAIMapper.ToOpenAIRequest(backendRequest);
-                openAIRequest.Stream = true;
-
-                await _openAIClient.StreamChatCompletionAsync(openAIRequest, onTokenReceived, cancellationToken);
-            }
-            catch (Exception ex)
+            // Continue conversation if last message was within 30 minutes
+            if (recentConversation != null &&
+                DateTime.UtcNow - recentConversation.UpdatedAt < TimeSpan.FromMinutes(30))
             {
-                _logger.LogError(ex, "Error occurred during streaming chat request");
-                throw;
+                return recentConversation.Id;
             }
+
+            // Create new conversation
+            var newConversation = new Core.Models.Entities.Conversation
+            {
+                Id = Guid.NewGuid().ToString(),
+                Title = "New Conversation",
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _conversationRepository.AddAsync(newConversation);
+            return newConversation.Id;
+        }
+
+        private async Task<List<MessageRequest>> GetConversationHistory(string conversationId)
+        {
+            var conversation = await _conversationRepository.GetByIdAsync(conversationId);
+            if (conversation == null) return new List<MessageRequest>();
+
+            return conversation.Messages.Select(m => new MessageRequest
+            {
+                Role = m.Role,
+                Content = m.Content,
+                Timestamp = m.Timestamp
+            }).ToList();
+        }
+
+        private string GetUserIdFromContext()
+        {
+            // TODO: Implement based on your authentication system
+            // Example: Get from JWT token, claims, etc.
+            return "user-from-auth-token";
         }
 
         public async Task<ConversationResponse> GetConversationAsync(string conversationId)
@@ -142,7 +175,7 @@ namespace IntelliBot.Application.Services
             {
                 Id = Guid.NewGuid().ToString(),
                 Title = GenerateConversationTitle(request.Message),
-                UserId = request.UserId ?? "default-user", // Use default if not provided
+                UserId = GetUserIdFromContext(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -264,7 +297,7 @@ namespace IntelliBot.Application.Services
             }
         }
 
-        private async Task SaveConversationAsync(ChatRequest request, ChatResponse response)
+        private async Task SaveConversationAsync(ChatSession request, ChatResponse response)
         {
             try
             {
@@ -283,7 +316,7 @@ namespace IntelliBot.Application.Services
                     Role = MessageRole.User,
                     Content = request.Message,
                     TokensUsed = 0, // You can calculate this from request
-                    ModelUsed = OpenAIMapper.ToOpenAIModelString(request.Model ?? 0),
+                    ModelUsed = request.Model,
                     Timestamp = DateTime.UtcNow
                 });
 
@@ -348,6 +381,11 @@ namespace IntelliBot.Application.Services
             // Rough cost estimation - adjust based on current OpenAI pricing
             const decimal costPerThousandTokens = 0.002m;
             return (totalTokens / 1000m) * costPerThousandTokens;
+        }
+
+        public Task StreamMessageAsync(ChatRequest request, Func<string, Task> onTokenReceived, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
         }
     }
 }
